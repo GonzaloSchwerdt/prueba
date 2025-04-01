@@ -12,6 +12,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from scipy import integrate
+import streamlit as st
 import os
 
 
@@ -86,7 +87,7 @@ nombre_archivo = "matriz_correlacion.png"
 plt.savefig(nombre_archivo, dpi=300, bbox_inches='tight')
 
 # Opcional: Mostrar el gráfico si querés verlo también
-plt.show()
+st.pyplot(plt)
 
 
 # # Filtrar la matriz de correlación para ver las mayores correlaciones
@@ -167,7 +168,7 @@ nombre_archivo = "distribucion_burnout.png"
 plt.savefig(nombre_archivo, dpi=300, bbox_inches='tight')
 
 # Opcional: Mostrar el gráfico si querés verlo también
-plt.show()
+st.pyplot(plt)
 
 
 
@@ -207,5 +208,5 @@ nombre_archivo = "porcentaje_contribucion.png"
 plt.savefig(nombre_archivo, dpi=300, bbox_inches='tight')
 
 # Opcional: Mostrar el gráfico si querés verlo también
-plt.show()
+st.pyplot(plt)
 
