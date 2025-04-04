@@ -126,14 +126,6 @@ for zona in zonas:
         )
     )
 
-# Línea gris oscura tenue por debajo de la blanca
-fig_kde.add_trace(go.Scatter(
-    x=x_range, y=y_vals,
-    mode='lines',
-    line=dict(color='rgba(100, 100, 100, 0.6)', width=2),
-    name='Densidad Fondo',
-    showlegend=False
-))
 
 # Línea blanca encima de todo
 fig_kde.add_trace(go.Scatter(
