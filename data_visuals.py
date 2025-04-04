@@ -3,6 +3,7 @@ import numpy as np
 import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
+from scipy.stats import gaussian_kde
 
 # Cargar los datos
 @st.cache_data
@@ -35,53 +36,68 @@ edad_min = int(df["Edad"].min())
 edad_max = int(df["Edad"].max())
 edad_rango = st.sidebar.slider("Edad", edad_min, edad_max, (edad_min, edad_max))
 
+total_min = int(df["Total"].min())
+total_max = int(df["Total"].max())
+total_rango = st.sidebar.slider("Puntaje Total", total_min, total_max, (total_min, total_max))
+
 df_filtrado = df[
     df["Genero"].isin(genero_seleccionado) &
-    df["Edad"].between(*edad_rango)
+    df["Edad"].between(*edad_rango) &
+    df["Total"].between(*total_rango)
 ]
 
 # === MATRIZ DE CORRELACIÓN ===
 st.subheader("🔗 Matriz de Correlación: Demográficos vs Resultados del Test")
 
-# Crear dummies para género
 df_dummies = pd.get_dummies(df_filtrado, columns=["Genero"])
 columnas_demograficas = ["Edad", "Genero_Femenino", "Genero_Masculino"]
 columnas_test = ["Total", "AMF", "RFC", "RPD"]
 
 df_corr = df_dummies[columnas_demograficas + columnas_test]
-corr = df_corr.corr().loc[columnas_demograficas, columnas_test].round(2).reset_index()
-corr = corr.melt(id_vars='index', var_name='Resultado Test', value_name='Correlación')
-corr.rename(columns={'index': 'Dato Demográfico'}, inplace=True)
+corr_matrix = df_corr.corr().loc[columnas_demograficas + columnas_test, columnas_demograficas + columnas_test]
 
 fig_corr = px.imshow(
-    df_corr.corr().loc[columnas_demograficas + columnas_test, columnas_demograficas + columnas_test],
+    corr_matrix,
     text_auto=True,
     color_continuous_scale='RdBu_r',
-    title='Matriz de Correlación'
+    title='Matriz de Correlación',
+    width=900,
+    height=700
 )
 st.plotly_chart(fig_corr, use_container_width=True)
 
 # === DISTRIBUCIÓN NORMAL ===
 st.subheader("📈 Distribución del Puntaje Total de Burnout")
 
-fig_kde = px.histogram(df_filtrado, x="Total", nbins=50, marginal="rug", histnorm="probability density", opacity=0.6)
-fig_kde.update_traces(marker_color='lightblue')
-fig_kde.update_layout(title="Distribución del Puntaje Total (Escala Equilibria)", xaxis_title="Puntaje Total")
+x_vals = df_filtrado["Total"].dropna().values
+kde = gaussian_kde(x_vals)
+x_range = np.linspace(x_vals.min(), x_vals.max(), 200)
+y_vals = kde(x_range)
+
+fig_kde = go.Figure()
+fig_kde.add_trace(go.Scatter(x=x_range, y=y_vals, mode='lines', line=dict(color='blue', width=3), name='Densidad'))
 
 # Colores por zonas (visual)
 zonas = [
-    {"rango": (0, 29), "color": "#8bff7d", "nombre": "Nulo"},
-    {"rango": (29, 36), "color": "#9dbfff", "nombre": "Leve"},
-    {"rango": (36, 46), "color": "#ffdd9d", "nombre": "Moderado"},
-    {"rango": (46, 80), "color": "#ff8989", "nombre": "Elevado"},
+    {"rango": (0, 29), "color": "#43a047", "nombre": "Nulo"},
+    {"rango": (29, 36), "color": "#1e88e5", "nombre": "Leve"},
+    {"rango": (36, 46), "color": "#fbc02d", "nombre": "Moderado"},
+    {"rango": (46, 80), "color": "#e53935", "nombre": "Elevado"},
 ]
 
 for zona in zonas:
     fig_kde.add_vrect(
         x0=zona["rango"][0], x1=zona["rango"][1],
-        fillcolor=zona["color"], opacity=0.2, line_width=0,
+        fillcolor=zona["color"], opacity=0.25, line_width=0,
         annotation_text=zona["nombre"], annotation_position="top left"
     )
+
+fig_kde.update_layout(
+    title="Distribución del Puntaje Total (Estimación KDE)",
+    xaxis_title="Puntaje Total",
+    yaxis_title="Densidad Estimada",
+    template="plotly_white"
+)
 
 st.plotly_chart(fig_kde, use_container_width=True)
 
@@ -103,7 +119,7 @@ fig_bar = px.bar(
     text=[f'{v}%' for v in porcentajes.values()],
     title="Porcentaje Promedio de Contribución por Subescala",
     color=list(porcentajes.keys()),
-    color_discrete_sequence=["#8bff7d", "#9dbfff", "#ffb3b3"]
+    color_discrete_sequence=["#43a047", "#1e88e5", "#e53935"]
 )
 fig_bar.update_traces(textposition='outside')
 fig_bar.update_layout(yaxis_range=[0, 100])
