@@ -101,7 +101,6 @@ y_vals = kde(x_range)
 
 fig_kde = go.Figure()
 
-
 # Áreas de color con más contraste
 zonas = [
     {"rango": (0, 29), "color": "#2ecc71", "nombre": "Nulo"},
@@ -127,7 +126,16 @@ for zona in zonas:
         )
     )
 
-# Línea blanca
+# Línea gris oscura tenue por debajo de la blanca
+fig_kde.add_trace(go.Scatter(
+    x=x_range, y=y_vals,
+    mode='lines',
+    line=dict(color='rgba(100, 100, 100, 0.6)', width=2),
+    name='Densidad Fondo',
+    showlegend=False
+))
+
+# Línea blanca encima de todo
 fig_kde.add_trace(go.Scatter(
     x=x_range, y=y_vals,
     mode='lines',
