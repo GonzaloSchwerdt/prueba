@@ -105,16 +105,16 @@ fig_kde = go.Figure()
 fig_kde.add_trace(go.Scatter(
     x=x_range, y=y_vals,
     mode='lines',
-    line=dict(color='white', width=4),
+    line=dict(color='rgba(255, 255, 255, 1)', width=4),
     name='Densidad'
 ))
 
 # Áreas de color con más contraste
 zonas = [
-    {"rango": (0, 29), "color": "#1B5E20", "nombre": "Nulo"},
-    {"rango": (29, 36), "color": "#0D47A1", "nombre": "Leve"},
-    {"rango": (36, 46), "color": "#F9A825", "nombre": "Moderado"},
-    {"rango": (46, 80), "color": "#B71C1C", "nombre": "Elevado"},
+    {"rango": (0, 29), "color": "#2ecc71", "nombre": "Nulo"},
+    {"rango": (29, 36), "color": "#16a085", "nombre": "Leve"},
+    {"rango": (36, 46), "color": "#f1c40f", "nombre": "Moderado"},
+    {"rango": (46, 80), "color": "#8e44ad", "nombre": "Elevado"},
 ]
 
 for zona in zonas:
