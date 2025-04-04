@@ -115,13 +115,13 @@ for zona in zonas:
 
     fig_kde.add_vrect(
         x0=zona["rango"][0], x1=zona["rango"][1],
-        fillcolor=zona["color"], opacity=0.35, line_width=0,
+        fillcolor=zona["color"], opacity=0.9, line_width=0,
         annotation=dict(
             text=f"<b>{zona['nombre']}</b>",
             x=centro,
             y=1.05,  # Ligeramente encima del gráfico
             showarrow=False,
-            font=dict(size=14, color="black"),
+            font=dict(size=14, color="white"),
             xanchor="center",
             yanchor="bottom"
         )
