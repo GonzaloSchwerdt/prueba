@@ -1,212 +1,115 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# # Importar Librerías
-
-# In[1]:
-
-
-import re
-import numpy as np
 import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
-from scipy import integrate
+import numpy as np
 import streamlit as st
-import os
+import plotly.express as px
+import plotly.graph_objects as go
 
+# Cargar los datos
+@st.cache_data
+def cargar_datos():
+    df = pd.read_excel("BaseDeDatosFinal(Demográficos+Test).xlsx")
+    df.columns = df.columns.str.strip()
+    return df
 
-# # Ordenar Columnas
+df = cargar_datos()
 
-# In[2]:
-
-
-df = pd.read_excel("BaseDeDatosFinal(Demográficos+Test).xlsx") 
-df.columns = df.columns.str.strip()
-
-
-# # Creamos la Matriz de Correlación 
-# ## Comparando solo Datos Demográficos con los Resultados Totales y Subescalas
-# ## Remarcando con un rectángulo negro la Zona de Interés
-
-# In[3]:
-
-
+# Normalizar valores de "Género"
 df["Genero"] = df["Genero"].str.lower()
-
-# Diccionario de mapeo
 mapeo_genero = {
-    "masculino": "Masculino",
-    "masculino ": "Masculino",
-    "hombre": "Masculino",
-    "masculina": "Masculino",
-    "femenino": "Femenino",
-    "femenino ": "Femenino",
-    "femenini": "Femenino",
-    "femenina": "Femenino",
-    "femenina ": "Femenino",
-    "mujer": "Femenino"
+    "masculino": "Masculino", "masculino ": "Masculino", "hombre": "Masculino", "masculina": "Masculino",
+    "femenino": "Femenino", "femenino ": "Femenino", "femenina": "Femenino", "femenina ": "Femenino",
+    "femenini": "Femenino", "mujer": "Femenino"
 }
-
-# Aplicar reemplazo
 df["Genero"] = df["Genero"].replace(mapeo_genero)
 
-# Revisar los nuevos conteos
-df["Genero"].value_counts()
+# Título principal
+st.title("📊 Análisis Interactivo del Test de Burnout - Equilibria")
+st.markdown("Este dashboard permite explorar de forma dinámica los datos del test de burnout, cruzando variables demográficas con resultados de subescalas.")
 
+# === FILTROS ===
+st.sidebar.header("🎚️ Filtros")
+generos = df["Genero"].dropna().unique()
+genero_seleccionado = st.sidebar.multiselect("Género", generos, default=generos)
 
-# In[6]:
+edad_min = int(df["Edad"].min())
+edad_max = int(df["Edad"].max())
+edad_rango = st.sidebar.slider("Edad", edad_min, edad_max, (edad_min, edad_max))
 
+df_filtrado = df[
+    df["Genero"].isin(genero_seleccionado) &
+    df["Edad"].between(*edad_rango)
+]
 
-# Código previo
-df_dummies = pd.get_dummies(df)
-datos_demograficos = ['Edad', 'Genero_Masculino', 'Genero_Femenino']
-resultados_test = ['Total', 'AMF', 'RFC', 'RPD']
+# === MATRIZ DE CORRELACIÓN ===
+st.subheader("🔗 Matriz de Correlación: Demográficos vs Resultados del Test")
 
-df_seleccionado = df_dummies[datos_demograficos + resultados_test]
-corr_matrix = df_seleccionado.corr()
+# Crear dummies para género
+df_dummies = pd.get_dummies(df_filtrado, columns=["Genero"])
+columnas_demograficas = ["Edad", "Genero_Femenino", "Genero_Masculino"]
+columnas_test = ["Total", "AMF", "RFC", "RPD"]
 
-# Graficar la matriz de correlación
-plt.figure(figsize=(10, 8))
-sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', center=0, vmin=-1, vmax=1, fmt='.2f')
+df_corr = df_dummies[columnas_demograficas + columnas_test]
+corr = df_corr.corr().loc[columnas_demograficas, columnas_test].round(2).reset_index()
+corr = corr.melt(id_vars='index', var_name='Resultado Test', value_name='Correlación')
+corr.rename(columns={'index': 'Dato Demográfico'}, inplace=True)
 
-# Identificar las posiciones de las filas/columnas a remarcar
-start_row = corr_matrix.index.get_loc("Total")
-end_row = corr_matrix.index.get_loc("RPD")
-start_col = corr_matrix.columns.get_loc("Edad")
-end_col = corr_matrix.columns.get_loc("Genero_Femenino")
+fig_corr = px.imshow(
+    df_corr.corr().loc[columnas_demograficas + columnas_test, columnas_demograficas + columnas_test],
+    text_auto=True,
+    color_continuous_scale='RdBu_r',
+    zmin=-1, zmax=1,
+    title='Matriz de Correlación'
+)
+st.plotly_chart(fig_corr, use_container_width=True)
 
-# Dibujar un rectángulo negro alrededor de la sección seleccionada
-plt.gca().add_patch(plt.Rectangle((start_col, start_row), end_col - start_col + 1, end_row - start_row + 1, 
-                                  fill=False, edgecolor='black', linewidth=3))
+# === DISTRIBUCIÓN NORMAL ===
+st.subheader("📈 Distribución del Puntaje Total de Burnout")
 
-plt.title('Matriz de Correlación (Datos Demográficos vs Resultados del Test)')
+fig_kde = px.histogram(df_filtrado, x="Total", nbins=50, marginal="rug", histnorm="probability density", opacity=0.6)
+fig_kde.update_traces(marker_color='lightblue')
+fig_kde.update_layout(title="Distribución del Puntaje Total (Escala Equilibria)", xaxis_title="Puntaje Total")
 
-# Guardar el gráfico en la misma carpeta del script
-nombre_archivo = "matriz_correlacion.png"
-plt.savefig(nombre_archivo, dpi=300, bbox_inches='tight')
+# Colores por zonas (visual)
+zonas = [
+    {"rango": (0, 29), "color": "#8bff7d", "nombre": "Nulo"},
+    {"rango": (29, 36), "color": "#9dbfff", "nombre": "Leve"},
+    {"rango": (36, 46), "color": "#ffdd9d", "nombre": "Moderado"},
+    {"rango": (46, 80), "color": "#ff8989", "nombre": "Elevado"},
+]
 
-# Opcional: Mostrar el gráfico si querés verlo también
-st.pyplot(plt)
+for zona in zonas:
+    fig_kde.add_vrect(
+        x0=zona["rango"][0], x1=zona["rango"][1],
+        fillcolor=zona["color"], opacity=0.2, line_width=0,
+        annotation_text=zona["nombre"], annotation_position="top left"
+    )
 
+st.plotly_chart(fig_kde, use_container_width=True)
 
-# # Filtrar la matriz de correlación para ver las mayores correlaciones
-
-# In[63]:
-
-
-corr_filtrada = corr_matrix.loc[datos_demograficos, resultados_test]
-
-# Convertir la matriz filtrada a formato largo (long format) para ordenarla
-corr_larga = corr_filtrada.stack().reset_index()
-corr_larga.columns = ['Datos Demográficos', 'Resultados Test', 'Correlación']
-
-# Tomar el valor absoluto de las correlaciones
-corr_larga['Correlación'] = corr_larga['Correlación'].abs()
-
-# Crear una nueva columna de polaridad
-corr_larga['Polaridad'] = corr_larga['Correlación'].apply(lambda x: '+' if x > 0 else '-')
-
-# Ordenar las correlaciones en orden descendente por el valor absoluto
-top_20 = corr_larga.sort_values(by='Correlación', ascending=False).head(20).reset_index(drop=True)
-
-top_20
-
-
-# # Creamos una Distribución Normal
-# ### Demarcada con la Escala de Burnout Equilibra
-
-# In[7]:
-
-
-plt.figure(figsize=(8, 6))
-
-# Calcular la curva de densidad
-kde = sns.kdeplot(df["Total"], color="black", linewidth=2.5, clip=(0, 80))
-
-# Obtener los datos de la curva
-x = kde.get_lines()[0].get_xdata()
-y = kde.get_lines()[0].get_ydata()
-
-# Definir los límites de cada segmento y colores
-segments = [(0, 29, '#8bff7d', 'Burnout Nulo'),
-            (29, 36, '#9dbfff', 'Burnout Leve'),
-            (36, 46, '#ffdd9d', 'Burnout Moderado'),
-            (46, 80, '#ff8989', 'Burnout Elevado')]
-
-# Calcular el área total bajo la curva
-total_area, _ = integrate.quad(lambda z: np.interp(z, x, y), 0, 80, limit=200)
-
-# Rellenar las áreas y calcular los porcentajes
-for start, end, color, label in segments:
-    plt.fill_between(x, y, where=(x > start) & (x <= end), color=color, alpha=0.5)
-    
-    # Calcular el área del segmento
-    segment_area, _ = integrate.quad(lambda z: np.interp(z, x, y), start, end, limit=200)
-
-    percentage = (segment_area / total_area) * 100
-    
-    # Mostrar el porcentaje en el centro del área
-    plt.text((start + end) / 2, max(y) * 0.4, f'{percentage:.1f}%', 
-             color='black', ha='center', fontsize=10, fontweight='bold')
-    
-    # Agregar la leyenda con el porcentaje
-    if start != 0:
-        plt.axvline(x=start, color=color, linestyle='-', linewidth=2.5, 
-                    label=f'{label} ({percentage:.1f}%)')
-    else:
-        plt.plot([], [], color=color, label=f'{label} ({percentage:.1f}%)')  # Sin línea visible
-
-plt.xlim(0, 80)  # Limitar eje X de 0 a 80
-plt.title("Distribución Normal del Puntaje Burnout - Equilibria")
-plt.xlabel("Puntaje Burnout")
-plt.ylabel("Frecuencia")
-plt.legend()
-
-# Guardar el gráfico en la misma carpeta del script
-nombre_archivo = "distribucion_burnout.png"
-plt.savefig(nombre_archivo, dpi=300, bbox_inches='tight')
-
-# Opcional: Mostrar el gráfico si querés verlo también
-st.pyplot(plt)
-
-
-
-
-# # Creamos un Histograma para ver que variables (Subescalas) influyen en el resultado del Burnout
-
-# In[8]:
-
+# === PORCENTAJE DE CONTRIBUCIÓN DE SUBESCALAS ===
+st.subheader("📊 Contribución Promedio de Cada Subescala al Total")
 
 promedios = {
-    "Agotamiento mental y físico": df[["AMF"]].mean()[0],
-    "Realización personal y despersonalización": df[["RPD"]].mean()[0],
-    "Respuestas Cognitivas y Conductuales": df[["RFC"]].mean()[0]
+    "Agotamiento Mental y Físico (AMF)": df_filtrado["AMF"].mean(),
+    "Respuestas Cognitivas/Conductuales (RFC)": df_filtrado["RFC"].mean(),
+    "Realización Personal/Despersonalización (RPD)": df_filtrado["RPD"].mean(),
 }
+total = df_filtrado["Total"].mean()
+porcentajes = {k: round((v / total) * 100, 2) for k, v in promedios.items()}
 
-# Calculamos el porcentaje de cada una de las variables
-porcentajes = {key: (value / df[["Total"]].mean()[0]) * 100 for key, value in promedios.items()}
+fig_bar = px.bar(
+    x=list(porcentajes.keys()),
+    y=list(porcentajes.values()),
+    labels={'x': 'Subescala', 'y': 'Contribución (%)'},
+    text=[f'{v}%' for v in porcentajes.values()],
+    title="Porcentaje Promedio de Contribución por Subescala",
+    color=list(porcentajes.keys()),
+    color_discrete_sequence=["#8bff7d", "#9dbfff", "#ffb3b3"]
+)
+fig_bar.update_traces(textposition='outside')
+fig_bar.update_layout(yaxis_range=[0, 100])
+st.plotly_chart(fig_bar, use_container_width=True)
 
-# Graficar el histograma con los porcentajes
-plt.figure(figsize=(10, 6))
-bars = plt.bar(porcentajes.keys(), porcentajes.values(), 
-               color=["#8bff7d", "#9dbfff", "#ffb3b3"], 
-               width=0.4, 
-               edgecolor="black")  # Borde negro
-
-# Añadir los porcentajes dentro de las barras
-for bar in bars:
-    yval = bar.get_height()
-    plt.text(bar.get_x() + bar.get_width() / 2, yval, f'{yval:.2f}%', 
-             ha='center', va='bottom', fontsize=12)
-
-plt.title("Porcentaje de Contribución de Cada Subescala")
-plt.ylabel("Porcentaje (%)")
-
-# Guardar el gráfico en la misma carpeta del script
-nombre_archivo = "porcentaje_contribucion.png"
-plt.savefig(nombre_archivo, dpi=300, bbox_inches='tight')
-
-# Opcional: Mostrar el gráfico si querés verlo también
-st.pyplot(plt)
-
+# Footer
+st.markdown("---")
+st.markdown("Desarrollado por [Tu Nombre] | 🧠 Psicología + Datos")
