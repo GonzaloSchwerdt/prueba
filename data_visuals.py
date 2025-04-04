@@ -101,13 +101,6 @@ y_vals = kde(x_range)
 
 fig_kde = go.Figure()
 
-# Línea blanca
-fig_kde.add_trace(go.Scatter(
-    x=x_range, y=y_vals,
-    mode='lines',
-    line=dict(color='rgba(255, 255, 255, 1)', width=4),
-    name='Densidad'
-))
 
 # Áreas de color con más contraste
 zonas = [
@@ -118,12 +111,29 @@ zonas = [
 ]
 
 for zona in zonas:
+    centro = (zona["rango"][0] + zona["rango"][1]) / 2  # Punto medio de la zona
+
     fig_kde.add_vrect(
         x0=zona["rango"][0], x1=zona["rango"][1],
-        fillcolor=zona["color"], opacity=0.8, line_width=0,
-        annotation_text=zona["nombre"], annotation_position="top left",
-        annotation=dict(font_size=12, font_color="white")
+        fillcolor=zona["color"], opacity=0.35, line_width=0,
+        annotation=dict(
+            text=f"<b>{zona['nombre']}</b>",
+            x=centro,
+            y=1.05,  # Ligeramente encima del gráfico
+            showarrow=False,
+            font=dict(size=14, color="black"),
+            xanchor="center",
+            yanchor="bottom"
+        )
     )
+
+# Línea blanca
+fig_kde.add_trace(go.Scatter(
+    x=x_range, y=y_vals,
+    mode='lines',
+    line=dict(color='rgba(255, 255, 255, 1)', width=4),
+    name='Densidad'
+))
 
 fig_kde.update_layout(
     title="Distribución del Puntaje Total (Estimación KDE)",
