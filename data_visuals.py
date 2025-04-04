@@ -68,13 +68,28 @@ st.plotly_chart(fig_corr, use_container_width=True)
 # === TABLA DE CORRELACIONES TOP 15 ===
 st.subheader("📋 Top 15 Correlaciones más Fuertes (absolutas)")
 
+# Evitar correlaciones entre Género_Femenino y Género_Masculino y duplicadas
 corr_flat = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(bool)).stack().reset_index()
 corr_flat.columns = ['Variable 1', 'Variable 2', 'Correlación']
+
+# Filtro para evitar género opuesto y auto-correlaciones (cercanas a 1)
+corr_flat = corr_flat[
+    ~(
+        ((corr_flat["Variable 1"] == "Genero_Femenino") & (corr_flat["Variable 2"] == "Genero_Masculino")) |
+        ((corr_flat["Variable 1"] == "Genero_Masculino") & (corr_flat["Variable 2"] == "Genero_Femenino")) |
+        (corr_flat["Correlación"].abs() == 1)
+    )
+]
+
+# Calcular valor absoluto y polaridad
 corr_flat["Valor Absoluto"] = corr_flat["Correlación"].abs()
 corr_flat["Polaridad"] = corr_flat["Correlación"].apply(lambda x: "Positiva" if x > 0 else "Negativa")
 
-top_corr = corr_flat.sort_values(by="Valor Absoluto", ascending=False).head(15)
-st.dataframe(top_corr.style.format({"Correlación": "{:.2f}", "Valor Absoluto": "{:.2f}"}))
+# Eliminar la columna "Correlación"
+top_corr = corr_flat.drop(columns=["Correlación"]).sort_values(by="Valor Absoluto", ascending=False).head(15)
+
+# Mostrar tabla
+st.dataframe(top_corr.style.format({"Valor Absoluto": "{:.2f}"}))
 
 # === DISTRIBUCIÓN KDE ===
 st.subheader("📈 Distribución del Puntaje Total de Burnout")
@@ -105,7 +120,7 @@ zonas = [
 for zona in zonas:
     fig_kde.add_vrect(
         x0=zona["rango"][0], x1=zona["rango"][1],
-        fillcolor=zona["color"], opacity=0.4, line_width=0,
+        fillcolor=zona["color"], opacity=0.8, line_width=0,
         annotation_text=zona["nombre"], annotation_position="top left",
         annotation=dict(font_size=12, font_color="white")
     )
