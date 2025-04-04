@@ -112,4 +112,4 @@ st.plotly_chart(fig_bar, use_container_width=True)
 
 # Footer
 st.markdown("---")
-st.markdown("Desarrollado por [Tu Nombre] | 🧠 Psicología + Datos")
+st.markdown("Desarrollado por Schwerdt Gonzalo | 🧠 Equilibria")
