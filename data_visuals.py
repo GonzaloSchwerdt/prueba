@@ -38,7 +38,7 @@ edad_rango = st.sidebar.slider("Edad", edad_min, edad_max, (edad_min, edad_max))
 
 total_min = int(df["Total"].min())
 total_max = int(df["Total"].max())
-total_rango = st.sidebar.slider("Puntaje Total", total_min, total_max, (total_min, total_max))
+total_rango = st.sidebar.slider("Total", total_min, total_max, (total_min, total_max))
 
 df_filtrado = df[
     df["Genero"].isin(genero_seleccionado) &
@@ -54,19 +54,29 @@ columnas_demograficas = ["Edad", "Genero_Femenino", "Genero_Masculino"]
 columnas_test = ["Total", "AMF", "RFC", "RPD"]
 
 df_corr = df_dummies[columnas_demograficas + columnas_test]
-corr_matrix = df_corr.corr().loc[columnas_demograficas + columnas_test, columnas_demograficas + columnas_test]
+corr_matrix = df_corr.corr()
 
 fig_corr = px.imshow(
-    corr_matrix,
+    corr_matrix.loc[columnas_demograficas + columnas_test, columnas_demograficas + columnas_test],
     text_auto=True,
     color_continuous_scale='RdBu_r',
-    title='Matriz de Correlación',
-    width=900,
-    height=700
+    title='Matriz de Correlación'
 )
+fig_corr.update_layout(height=600)  # Aumentar tamaño de imagen
 st.plotly_chart(fig_corr, use_container_width=True)
 
-# === DISTRIBUCIÓN NORMAL ===
+# === TABLA DE CORRELACIONES TOP 15 ===
+st.subheader("📋 Top 15 Correlaciones más Fuertes (absolutas)")
+
+corr_flat = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(bool)).stack().reset_index()
+corr_flat.columns = ['Variable 1', 'Variable 2', 'Correlación']
+corr_flat["Valor Absoluto"] = corr_flat["Correlación"].abs()
+corr_flat["Polaridad"] = corr_flat["Correlación"].apply(lambda x: "Positiva" if x > 0 else "Negativa")
+
+top_corr = corr_flat.sort_values(by="Valor Absoluto", ascending=False).head(15)
+st.dataframe(top_corr.style.format({"Correlación": "{:.2f}", "Valor Absoluto": "{:.2f}"}))
+
+# === DISTRIBUCIÓN KDE ===
 st.subheader("📈 Distribución del Puntaje Total de Burnout")
 
 x_vals = df_filtrado["Total"].dropna().values
@@ -75,28 +85,37 @@ x_range = np.linspace(x_vals.min(), x_vals.max(), 200)
 y_vals = kde(x_range)
 
 fig_kde = go.Figure()
-fig_kde.add_trace(go.Scatter(x=x_range, y=y_vals, mode='lines', line=dict(color='blue', width=3), name='Densidad'))
 
-# Colores por zonas (visual)
+# Línea blanca
+fig_kde.add_trace(go.Scatter(
+    x=x_range, y=y_vals,
+    mode='lines',
+    line=dict(color='white', width=4),
+    name='Densidad'
+))
+
+# Áreas de color con más contraste
 zonas = [
-    {"rango": (0, 29), "color": "#43a047", "nombre": "Nulo"},
-    {"rango": (29, 36), "color": "#1e88e5", "nombre": "Leve"},
-    {"rango": (36, 46), "color": "#fbc02d", "nombre": "Moderado"},
-    {"rango": (46, 80), "color": "#e53935", "nombre": "Elevado"},
+    {"rango": (0, 29), "color": "#1B5E20", "nombre": "Nulo"},
+    {"rango": (29, 36), "color": "#0D47A1", "nombre": "Leve"},
+    {"rango": (36, 46), "color": "#F9A825", "nombre": "Moderado"},
+    {"rango": (46, 80), "color": "#B71C1C", "nombre": "Elevado"},
 ]
 
 for zona in zonas:
     fig_kde.add_vrect(
         x0=zona["rango"][0], x1=zona["rango"][1],
-        fillcolor=zona["color"], opacity=0.25, line_width=0,
-        annotation_text=zona["nombre"], annotation_position="top left"
+        fillcolor=zona["color"], opacity=0.4, line_width=0,
+        annotation_text=zona["nombre"], annotation_position="top left",
+        annotation=dict(font_size=12, font_color="white")
     )
 
 fig_kde.update_layout(
     title="Distribución del Puntaje Total (Estimación KDE)",
     xaxis_title="Puntaje Total",
     yaxis_title="Densidad Estimada",
-    template="plotly_white"
+    template="plotly_dark",
+    height=500
 )
 
 st.plotly_chart(fig_kde, use_container_width=True)
@@ -119,7 +138,7 @@ fig_bar = px.bar(
     text=[f'{v}%' for v in porcentajes.values()],
     title="Porcentaje Promedio de Contribución por Subescala",
     color=list(porcentajes.keys()),
-    color_discrete_sequence=["#43a047", "#1e88e5", "#e53935"]
+    color_discrete_sequence=["#8bff7d", "#9dbfff", "#ffb3b3"]
 )
 fig_bar.update_traces(textposition='outside')
 fig_bar.update_layout(yaxis_range=[0, 100])
