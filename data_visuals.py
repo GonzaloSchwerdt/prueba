@@ -57,7 +57,6 @@ fig_corr = px.imshow(
     df_corr.corr().loc[columnas_demograficas + columnas_test, columnas_demograficas + columnas_test],
     text_auto=True,
     color_continuous_scale='RdBu_r',
-    zmin=-1, zmax=1,
     title='Matriz de Correlación'
 )
 st.plotly_chart(fig_corr, use_container_width=True)
