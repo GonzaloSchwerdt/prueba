@@ -114,7 +114,7 @@ for zona in zonas:
 
     fig_kde.add_vrect(
         x0=zona["rango"][0], x1=zona["rango"][1],
-        fillcolor=zona["color"], opacity=0.9, line_width=0,
+        fillcolor=zona["color"], opacity=0.7, line_width=0,
         annotation=dict(
             text=f"<b>{zona['nombre']}</b>",
             x=centro,
@@ -126,15 +126,6 @@ for zona in zonas:
         )
     )
 
-# Línea gris oscura tenue por debajo de la blanca (sombra)
-fig_kde.add_trace(go.Scatter(
-    x=x_range, y=y_vals,
-    mode='lines',
-    line=dict(color='rgba(80, 80, 80, 0.8)', width=6),
-    name='Sombra',
-    showlegend=False
-))
-
 # Línea blanca encima de todo
 fig_kde.add_trace(go.Scatter(
     x=x_range, y=y_vals,
@@ -145,23 +136,23 @@ fig_kde.add_trace(go.Scatter(
 
 # Layout final con cuadrícula y fondo
 fig_kde.update_layout(
-    title="Distribución del Puntaje Total (Estimación KDE)",
     xaxis_title="Puntaje Total",
     yaxis_title="Densidad Estimada",
     height=500,
     plot_bgcolor='rgba(0,0,0,1)',
     paper_bgcolor='rgba(0,0,0,1)',
+    font=dict(color="white"),
+
     xaxis=dict(
         showgrid=True,
-        gridcolor='rgba(80,80,80,0.4)',
-        zeroline=False
+        gridcolor='rgba(100,100,100,0.3)',
+        gridwidth=0.5
     ),
     yaxis=dict(
         showgrid=True,
-        gridcolor='rgba(80,80,80,0.4)',
-        zeroline=False
-    ),
-    font=dict(color="white"),
+        gridcolor='rgba(100,100,100,0.3)',
+        gridwidth=0.5
+    )
 )
 
 st.plotly_chart(fig_kde, use_container_width=True)
