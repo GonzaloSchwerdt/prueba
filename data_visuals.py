@@ -110,7 +110,7 @@ zonas = [
 ]
 
 for zona in zonas:
-    centro = (zona["rango"][0] + zona["rango"][1]) / 2  # Punto medio de la zona
+    centro = (zona["rango"][0] + zona["rango"][1]) / 2
 
     fig_kde.add_vrect(
         x0=zona["rango"][0], x1=zona["rango"][1],
@@ -118,7 +118,7 @@ for zona in zonas:
         annotation=dict(
             text=f"<b>{zona['nombre']}</b>",
             x=centro,
-            y=1.05,  # Ligeramente encima del gráfico
+            y=1.05,
             showarrow=False,
             font=dict(size=14, color="white"),
             xanchor="center",
@@ -126,24 +126,46 @@ for zona in zonas:
         )
     )
 
+# Línea gris oscura tenue por debajo de la blanca (sombra)
+fig_kde.add_trace(go.Scatter(
+    x=x_range, y=y_vals,
+    mode='lines',
+    line=dict(color='rgba(80, 80, 80, 0.8)', width=6),
+    name='Sombra',
+    showlegend=False
+))
 
 # Línea blanca encima de todo
 fig_kde.add_trace(go.Scatter(
     x=x_range, y=y_vals,
     mode='lines',
-    line=dict(color='rgba(255, 255, 255, 1)', width=4),
+    line=dict(color='white', width=3),
     name='Densidad'
 ))
 
+# Layout final con cuadrícula y fondo
 fig_kde.update_layout(
     title="Distribución del Puntaje Total (Estimación KDE)",
     xaxis_title="Puntaje Total",
     yaxis_title="Densidad Estimada",
-    template="plotly_dark",
-    height=500
+    height=500,
+    plot_bgcolor='rgba(0,0,0,1)',
+    paper_bgcolor='rgba(0,0,0,1)',
+    xaxis=dict(
+        showgrid=True,
+        gridcolor='rgba(80,80,80,0.4)',
+        zeroline=False
+    ),
+    yaxis=dict(
+        showgrid=True,
+        gridcolor='rgba(80,80,80,0.4)',
+        zeroline=False
+    ),
+    font=dict(color="white"),
 )
 
 st.plotly_chart(fig_kde, use_container_width=True)
+
 
 # === PORCENTAJE DE CONTRIBUCIÓN DE SUBESCALAS ===
 st.subheader("📊 Contribución Promedio de Cada Subescala al Total")
