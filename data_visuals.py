@@ -114,7 +114,7 @@ for zona in zonas:
 
     fig_kde.add_vrect(
         x0=zona["rango"][0], x1=zona["rango"][1],
-        fillcolor=zona["color"], opacity=1, line_width=0,
+        fillcolor=zona["color"], opacity=0.4, line_width=0,
         annotation=dict(
             text=f"<b>{zona['nombre']}</b>",
             x=centro,
@@ -146,7 +146,7 @@ fig_kde.update_layout(
     xaxis=dict(
         showgrid=True,
         gridcolor='rgba(100,100,100,1)',
-        gridwidth=0.5
+        gridwidth=0.6
     ),
     yaxis=dict(
         showgrid=True,
